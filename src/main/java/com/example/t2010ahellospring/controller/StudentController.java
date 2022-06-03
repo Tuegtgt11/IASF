@@ -1,10 +1,15 @@
 package com.example.t2010ahellospring.controller;
 
 import com.example.t2010ahellospring.entity.Student;
+import com.example.t2010ahellospring.service.StudentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 /*
 *  Http://localhost:8080/api/v1/students  | GET     | return list student
 *  Http://localhost:8080/api/v1/students  | POST    | create new student
@@ -13,78 +18,55 @@ import java.util.List;
 *  Http://localhost:8080/api/v1/students  | PUT     | update student
 * */
 
-
 @RestController
-@RequestMapping(path = "api/v1/students")
+@RequestMapping("api/v1/students")
 public class StudentController {
-    static List<Student> list = new ArrayList<>();
-    {
-        list.add(Student.builder().rollNumber("10001a").fullName("Vu Duc Tue").build());
-        list.add(Student.builder().rollNumber("10002a").fullName("NDT BADBOY").build());
-        list.add(Student.builder().rollNumber("10003a").fullName("Robert Vu").build());
-        list.add(Student.builder().rollNumber("10004a").fullName("Jakk Vu").build());
-    }
 
-    //CRUD
+    @Autowired
+    StudentService studentService;
+
     @RequestMapping(method = RequestMethod.GET)
-    public List<Student> findAll(){
-        return list;
+    public ResponseEntity<List<Student>> getList() {
+        return ResponseEntity.ok(studentService.findAll());
     }
 
-    @RequestMapping(method = RequestMethod.GET, path ="{id}")
-    public Student findById(@PathVariable String id) {
-        int foundIndex = -1;
-        for (int i = 0; i <= list.size(); i++) {
-            if (list.get(i).getRollNumber().equals(id)) {
-                foundIndex = i;
-                break;
-            }
+    @RequestMapping(method = RequestMethod.GET, path = "{id}")
+    public ResponseEntity<?> getDetail(@PathVariable Long id) {
+        Optional<Student> optionalStudent = studentService.findById(id);
+        if (!optionalStudent.isPresent()) {
+            ResponseEntity.badRequest().build();
         }
-        if (foundIndex == -1){
-            return null;
-        }
-        return list.get(foundIndex);
+        return ResponseEntity.ok(optionalStudent.get());
     }
+
     @RequestMapping(method = RequestMethod.POST)
-    public Student save(@RequestBody Student student) {
-        list.add(student);
-        return student;
-    }
-
-    @RequestMapping(method = RequestMethod.DELETE, path = "{id}")
-    public Student delete(@PathVariable String id) {
-        int foundIndex = -1;
-        for (int i = 0; i <= list.size(); i++) {
-            if (list.remove(i).getRollNumber().equals(id)) {
-                foundIndex = i;
-                break;
-            }
-        }
-        if (foundIndex == -1){
-            return null;
-        }
-        return list.remove(foundIndex);
+    public ResponseEntity<Student> create(@RequestBody Student product) {
+        return ResponseEntity.ok(studentService.save(product));
     }
 
     @RequestMapping(method = RequestMethod.PUT, path = "{id}")
-    public Student edit(@PathVariable String id,@RequestBody Student student) {
-        int foundIndex = -1;
-        for (int i = 0; i <= list.size(); i++) {
-            if (list.get(i).getRollNumber().equals(id)) {
-                foundIndex = i;
-                break;
-            }
+    public ResponseEntity<Student> update(@PathVariable Long id, @RequestBody Student student) {
+        Optional<Student> optionalStudent = studentService.findById(id);
+        if (!optionalStudent.isPresent()) {
+            ResponseEntity.badRequest().build();
         }
-        if (foundIndex == -1){
-            return null;
-        }
-        Student existingStudent = list.get(foundIndex);
-        student.setFullName(existingStudent.getFullName());
-        student.setAddress(existingStudent.getAddress());
-        student.setEmail(existingStudent.getEmail());
-        student.setPhone(existingStudent.getPhone());
-        student.setDob(existingStudent.getDob());
+        Student existStudent = optionalStudent.get();
+        // map object
+        existStudent.setFullName(student.getFullName());
+        existStudent.setPhone(student.getPhone());
+        existStudent.setEmail(student.getEmail());
+        existStudent.setAddress(student.getAddress());
+        existStudent.setNote(student.getNote());
+        return ResponseEntity.ok(studentService.save(existStudent));
+    }
 
-        return student;
+    @RequestMapping(method = RequestMethod.DELETE, path = "{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        if (!studentService.findById(id).isPresent()) {
+            ResponseEntity.badRequest().build();
+        }
+        studentService.deleteById(id);
+        return ResponseEntity.ok().build();
     }
 }
+
